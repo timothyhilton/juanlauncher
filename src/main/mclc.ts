@@ -1,9 +1,11 @@
 import { Client, IUser } from 'minecraft-launcher-core'
 import { Auth } from 'msmc'
 import { DownloaderHelper } from 'node-downloader-helper'
-import os from 'os'
+import os, { version } from 'os'
 import path from 'path'
 import fs from 'fs'
+import unzipper from 'unzipper'
+import { unzip } from 'zlib'
 
 const launcher = new Client()
 const rootPath = path.join(
@@ -26,30 +28,55 @@ type releasesData = [
 export const launch = async () => {
   const req = await fetch('https://api.github.com/repos/timothyhilton/juanclient/releases')
   const releasesData: releasesData = await req.json()
-
-  console.log(`getting juan client ${releasesData[0].tag_name}`)
-
   const latestRelease = releasesData[0].assets[0]
-  const fileUrl = latestRelease.browser_download_url
   const filePath = path.join(rootPath, 'releasezips')
-  if (!fs.existsSync(filePath)) {
-    fs.mkdirSync(filePath)
+
+  const zipPath = path.join(filePath, latestRelease.name)
+
+  if (fs.existsSync(filePath)) {
+    console.log('latest release zip already downloaded, skipping')
+    unzipVersion(zipPath, latestRelease.name.replace('.zip', ''))
+  } else {
+    downloadRelease(releasesData)
+  }
+}
+
+const unzipVersion = async (zipPath: string, releaseName) => {
+  const versionsDir = path.join(rootPath, 'versions')
+
+  if (!fs.existsSync(versionsDir)) {
+    fs.mkdirSync(versionsDir)
   }
 
-  const dl = new DownloaderHelper(fileUrl, filePath)
+  fs.createReadStream(zipPath)
+    .pipe(unzipper.Extract({ path: path.join(rootPath, 'versions') }))
+    .on('close', () => {
+      console.log('files unzipped successfully, launching game')
+      launchGame(versionsDir, releaseName)
+    })
+}
+
+const downloadRelease = async (releasesData: releasesData) => {
+  const latestRelease = releasesData[0].assets[0]
+  const downloadDir = path.join(rootPath, 'releasezips')
+
+  console.log(`downloading juan client ${releasesData[0].tag_name}`)
+
+  const fileUrl = latestRelease.browser_download_url
+  if (!fs.existsSync(downloadDir)) {
+    fs.mkdirSync(downloadDir)
+  }
+
+  const dl = new DownloaderHelper(fileUrl, downloadDir)
 
   dl.start()
-  dl.on('end', () => {
-    console.log('download completed, launching game')
-    unzipVersion(path.join(filePath, latestRelease.name))
+  await dl.on('end', () => {
+    console.log('download completed, unzipping download')
+    unzipVersion(path.join(downloadDir, latestRelease.name), latestRelease.name.replace('.zip', ''))
   })
 }
 
-export const unzipVersion = (filePath: string) => {
-  launchGame()
-}
-
-const launchGame = async () => {
+const launchGame = async (versionDir: string, releaseName: string) => {
   const authManager = new Auth('select_account')
   const xboxManager = await authManager.launch('electron')
   const token = await xboxManager.getMinecraft()
@@ -59,7 +86,8 @@ const launchGame = async () => {
     root: rootPath,
     version: {
       number: '1.8.8',
-      type: 'release'
+      type: 'release',
+      custom: releaseName
     },
     memory: {
       max: '6G',
