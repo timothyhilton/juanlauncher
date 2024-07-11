@@ -3,7 +3,7 @@ import { Button } from "@renderer/components/ui/button";
 export default function App(){
 
   const onClick = () => {
-    window.electron.ipcRenderer.send('ping');
+    window.electron.ipcRenderer.send('launch');
   }
 
   return(
