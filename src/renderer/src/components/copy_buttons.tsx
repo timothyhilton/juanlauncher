@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { Button } from "@renderer/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { Notification } from "./notification";
 
 export function CopyButtons() {
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
   const [isLoadingResourcePacks, setIsLoadingResourcePacks] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const copyGameSettings = async () => {
     setIsLoadingSettings(true);
     try {
-      await window.electron.ipcRenderer.invoke('copyGameSettings');
-      console.log('Game settings copied successfully');
+      const result = await window.electron.ipcRenderer.invoke('copyGameSettings');
+      setNotification({ message: result.message, type: result.success ? 'success' : 'error' });
     } catch (error) {
-      console.error('Error copying game settings:', error);
+      setNotification({ message: 'Error copying game settings', type: 'error' });
     } finally {
       setIsLoadingSettings(false);
     }
@@ -21,10 +23,10 @@ export function CopyButtons() {
   const copyResourcePacks = async () => {
     setIsLoadingResourcePacks(true);
     try {
-      await window.electron.ipcRenderer.invoke('copyResourcePacks');
-      console.log('Resource packs copied successfully');
+      const result = await window.electron.ipcRenderer.invoke('copyResourcePacks');
+      setNotification({ message: result.message, type: result.success ? 'success' : 'error' });
     } catch (error) {
-      console.error('Error copying resource packs:', error);
+      setNotification({ message: 'Error copying resource packs', type: 'error' });
     } finally {
       setIsLoadingResourcePacks(false);
     }
@@ -50,6 +52,13 @@ export function CopyButtons() {
         {isLoadingResourcePacks && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Copy Resource Packs
       </Button>
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </div>
   );
 }

@@ -19,10 +19,16 @@ export const copyGameSettings = async () => {
     await fs.copy(path.join(minecraftPath, 'options.txt'), path.join(juanPath, 'options.txt'), {
       overwrite: true
     })
-    return { success: true }
+    return { success: true, message: 'Game settings copied successfully' }
   } catch (error) {
     console.error('Error copying game settings:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Unknown error occurred while copying game settings'
+    }
   }
 }
 
@@ -46,9 +52,15 @@ export const copyResourcePacks = async () => {
       }
     }
 
-    return { success: true }
+    return { success: true, message: 'Resource packs copied successfully' }
   } catch (error) {
     console.error('Error copying resource packs:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Unknown error occurred while copying resource packs'
+    }
   }
 }
