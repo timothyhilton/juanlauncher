@@ -25,7 +25,7 @@ type releasesData = [
   }
 ]
 
-export const launch = async (selectedVersion: string, window: BrowserWindow) => {
+export const launch = async (selectedVersion: string, accountId: string, window: BrowserWindow) => {
   const isDownloaded = checkBuildDownloaded(selectedVersion)
   if (!isDownloaded) {
     throw new Error('Selected version is not downloaded')
@@ -33,7 +33,7 @@ export const launch = async (selectedVersion: string, window: BrowserWindow) => 
 
   const zipPath = path.join(rootPath, 'releasezips', `juanclient-${selectedVersion}.zip`)
   await unzipVersion(zipPath, selectedVersion)
-  await launchGame(selectedVersion, window)
+  await launchGame(selectedVersion, accountId, window)
 }
 
 export const unzipVersion = async (zipPath: string, releaseName: string): Promise<void> => {
@@ -77,7 +77,11 @@ export const downloadRelease = async (release: releasesData[0]): Promise<string>
   })
 }
 
-export const launchGame = async (releaseName: string, window: BrowserWindow): Promise<void> => {
+export const launchGame = async (
+  releaseName: string,
+  accountId: string,
+  window: BrowserWindow
+): Promise<void> => {
   const authManager = new Auth('select_account')
   const xboxManager = await authManager.launch('electron')
   const token = await xboxManager.getMinecraft()

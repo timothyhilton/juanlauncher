@@ -3,11 +3,11 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { checkBuildDownloaded, downloadBuild, launch } from './mclc'
+import { Auth } from 'msmc'
 
 var mainWindow: BrowserWindow
 
 function createWindow(): void {
-  // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -44,28 +44,8 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
-
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
-  })
-
-  // IPC test
-  ipcMain.handle('launch', async (_, version) => {
-    try {
-      await launch(version, mainWindow)
-      return { success: true }
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Launch failed:', error)
-        return { success: false, error: error.message }
-      } else {
-        console.error('Launch failed:', error)
-        return { success: false, error: 'Unknown error' }
-      }
-    }
   })
 
   ipcMain.handle('checkBuildDownloaded', async (_, version) => {
@@ -85,6 +65,40 @@ app.whenReady().then(() => {
     } catch (error) {
       console.error('Download failed:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('addAccount', async () => {
+    const authManager = new Auth('select_account')
+    try {
+      const result = await authManager.launch('electron')
+      const minecraft = await result.getMinecraft()
+      return {
+        id: minecraft.profile?.id,
+        username: minecraft.profile?.name
+      }
+    } catch (error) {
+      console.error('Failed to add account:', error)
+      return null
+    }
+  })
+
+  ipcMain.handle('getAccounts', () => {
+    return []
+  })
+
+  ipcMain.handle('launch', async (_, version, accountId) => {
+    try {
+      await launch(version, accountId, mainWindow)
+      return { success: true }
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Launch failed:', error)
+        return { success: false, error: error.message }
+      } else {
+        console.error('Launch failed:', error)
+        return { success: false, error: 'Unknown error' }
+      }
     }
   })
 
