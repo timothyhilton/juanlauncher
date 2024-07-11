@@ -5,6 +5,7 @@ import os from 'os'
 import path from 'path'
 import fs from 'fs'
 import unzipper from 'unzipper'
+import { BrowserWindow } from 'electron'
 
 const launcher = new Client()
 const rootPath = path.join(
@@ -24,7 +25,7 @@ type releasesData = [
   }
 ]
 
-export const launch = async (selectedVersion: string) => {
+export const launch = async (selectedVersion: string, window: BrowserWindow) => {
   const req = await fetch('https://api.github.com/repos/timothyhilton/juanclient/releases')
   const releasesData: releasesData = await req.json()
   const selectedRelease = releasesData.find((release) => release.tag_name === selectedVersion)
@@ -41,13 +42,13 @@ export const launch = async (selectedVersion: string) => {
 
   if (fs.existsSync(zipPath)) {
     console.log('Selected release zip already downloaded, skipping')
-    unzipVersion(zipPath, selectedVersion)
+    unzipVersion(zipPath, selectedVersion, window)
   } else {
-    downloadRelease(selectedRelease)
+    downloadRelease(selectedRelease, window)
   }
 }
 
-const unzipVersion = async (zipPath: string, releaseName) => {
+const unzipVersion = async (zipPath: string, releaseName, window: BrowserWindow) => {
   const versionsDir = path.join(rootPath, 'versions')
 
   if (!fs.existsSync(versionsDir)) {
@@ -58,11 +59,11 @@ const unzipVersion = async (zipPath: string, releaseName) => {
     .pipe(unzipper.Extract({ path: path.join(rootPath, 'versions') }))
     .on('close', () => {
       console.log('files unzipped successfully, launching game')
-      launchGame(releaseName)
+      launchGame(releaseName, window)
     })
 }
 
-const downloadRelease = async (release: releasesData[0]) => {
+const downloadRelease = async (release: releasesData[0], window: BrowserWindow) => {
   const latestRelease = release.assets[0]
   const downloadDir = path.join(rootPath, 'releasezips')
 
@@ -78,11 +79,11 @@ const downloadRelease = async (release: releasesData[0]) => {
   dl.start()
   await dl.on('end', () => {
     console.log('download completed, unzipping download')
-    unzipVersion(path.join(downloadDir, latestRelease.name), release.tag_name)
+    unzipVersion(path.join(downloadDir, latestRelease.name), release.tag_name, window)
   })
 }
 
-const launchGame = async (releaseName: string) => {
+const launchGame = async (releaseName: string, window: BrowserWindow) => {
   const authManager = new Auth('select_account')
   const xboxManager = await authManager.launch('electron')
   const token = await xboxManager.getMinecraft()
@@ -106,4 +107,10 @@ const launchGame = async (releaseName: string) => {
 
   launcher.on('debug', (e) => console.log(e))
   launcher.on('data', (e) => console.log(e))
+  launcher.on('data', (e) => {
+    if (e.includes('LWJGL Version:')) {
+      console.log('Game has launched, closing Electron window')
+      window.close()
+    }
+  })
 }

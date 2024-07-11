@@ -4,9 +4,11 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { launch } from './mclc'
 
+var mainWindow: BrowserWindow
+
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -51,7 +53,7 @@ app.whenReady().then(() => {
   })
 
   // IPC test
-  ipcMain.on('launch', async (_, version) => await launch(version))
+  ipcMain.on('launch', async (_, version) => await launch(version, mainWindow))
 
   createWindow()
 
