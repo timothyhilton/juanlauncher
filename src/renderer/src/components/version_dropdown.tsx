@@ -31,7 +31,7 @@ type releasesData = [
     }
 ]
 
-export function VersionDropdown({value, setValue} : {value: string, setValue: any}) {
+export function VersionDropdown({value, setValue, onBuildSelect} : {value: string, setValue: any, onBuildSelect: (build: string) => void}) {
   const [open, setOpen] = useState(false)
   const [builds, setBuilds] = useState([''])
 
@@ -74,6 +74,7 @@ export function VersionDropdown({value, setValue} : {value: string, setValue: an
                     value={build}
                     onSelect={currentValue => {
                     setValue(currentValue === value ? "" : currentValue)
+                    onBuildSelect(currentValue)
                     setOpen(false)
                     }}
                 >

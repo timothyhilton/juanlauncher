@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { launch } from './mclc'
+import { checkBuildDownloaded, downloadBuild, launch } from './mclc'
 
 var mainWindow: BrowserWindow
 
@@ -53,7 +53,40 @@ app.whenReady().then(() => {
   })
 
   // IPC test
-  ipcMain.on('launch', async (_, version) => await launch(version, mainWindow))
+  ipcMain.handle('launch', async (_, version) => {
+    try {
+      await launch(version, mainWindow)
+      return { success: true }
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Launch failed:', error)
+        return { success: false, error: error.message }
+      } else {
+        console.error('Launch failed:', error)
+        return { success: false, error: 'Unknown error' }
+      }
+    }
+  })
+
+  ipcMain.handle('checkBuildDownloaded', async (_, version) => {
+    try {
+      const isDownloaded = await checkBuildDownloaded(version)
+      return isDownloaded
+    } catch (error) {
+      console.error('Error checking build download status:', error)
+      return false
+    }
+  })
+
+  ipcMain.handle('download', async (_, version) => {
+    try {
+      await downloadBuild(version)
+      return { success: true }
+    } catch (error) {
+      console.error('Download failed:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
 
   createWindow()
 

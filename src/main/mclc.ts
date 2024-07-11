@@ -19,71 +19,65 @@ type releasesData = [
     assets: [
       {
         browser_download_url: string
-        name
+        name: string
       }
     ]
   }
 ]
 
 export const launch = async (selectedVersion: string, window: BrowserWindow) => {
-  const req = await fetch('https://api.github.com/repos/timothyhilton/juanclient/releases')
-  const releasesData: releasesData = await req.json()
-  const selectedRelease = releasesData.find((release) => release.tag_name === selectedVersion)
-
-  if (!selectedRelease) {
-    console.error('Selected version not found')
-    return
+  const isDownloaded = checkBuildDownloaded(selectedVersion)
+  if (!isDownloaded) {
+    throw new Error('Selected version is not downloaded')
   }
 
-  const latestRelease = selectedRelease.assets[0]
-  const filePath = path.join(rootPath, 'releasezips')
-
-  const zipPath = path.join(filePath, latestRelease.name)
-
-  if (fs.existsSync(zipPath)) {
-    console.log('Selected release zip already downloaded, skipping')
-    unzipVersion(zipPath, selectedVersion, window)
-  } else {
-    downloadRelease(selectedRelease, window)
-  }
+  const zipPath = path.join(rootPath, 'releasezips', `juanclient-${selectedVersion}.zip`)
+  await unzipVersion(zipPath, selectedVersion)
+  await launchGame(selectedVersion, window)
 }
 
-const unzipVersion = async (zipPath: string, releaseName, window: BrowserWindow) => {
+export const unzipVersion = async (zipPath: string, releaseName: string): Promise<void> => {
   const versionsDir = path.join(rootPath, 'versions')
 
   if (!fs.existsSync(versionsDir)) {
-    fs.mkdirSync(versionsDir)
+    fs.mkdirSync(versionsDir, { recursive: true })
   }
 
-  fs.createReadStream(zipPath)
-    .pipe(unzipper.Extract({ path: path.join(rootPath, 'versions') }))
-    .on('close', () => {
-      console.log('files unzipped successfully, launching game')
-      launchGame(releaseName, window)
-    })
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(zipPath)
+      .pipe(unzipper.Extract({ path: path.join(rootPath, 'versions') }))
+      .on('close', () => {
+        console.log('Files unzipped successfully')
+        resolve()
+      })
+      .on('error', reject)
+  })
 }
 
-const downloadRelease = async (release: releasesData[0], window: BrowserWindow) => {
+export const downloadRelease = async (release: releasesData[0]): Promise<string> => {
   const latestRelease = release.assets[0]
   const downloadDir = path.join(rootPath, 'releasezips')
 
-  console.log(`downloading juan client ${release.tag_name}`)
+  console.log(`Downloading juan client ${release.tag_name}`)
 
   const fileUrl = latestRelease.browser_download_url
   if (!fs.existsSync(downloadDir)) {
-    fs.mkdirSync(downloadDir)
+    fs.mkdirSync(downloadDir, { recursive: true })
   }
 
   const dl = new DownloaderHelper(fileUrl, downloadDir)
 
-  dl.start()
-  await dl.on('end', () => {
-    console.log('download completed, unzipping download')
-    unzipVersion(path.join(downloadDir, latestRelease.name), release.tag_name, window)
+  return new Promise((resolve, reject) => {
+    dl.on('end', () => {
+      console.log('Download completed')
+      resolve(path.join(downloadDir, latestRelease.name))
+    })
+    dl.on('error', reject)
+    dl.start()
   })
 }
 
-const launchGame = async (releaseName: string, window: BrowserWindow) => {
+export const launchGame = async (releaseName: string, window: BrowserWindow): Promise<void> => {
   const authManager = new Auth('select_account')
   const xboxManager = await authManager.launch('electron')
   const token = await xboxManager.getMinecraft()
@@ -113,4 +107,26 @@ const launchGame = async (releaseName: string, window: BrowserWindow) => {
       window.close()
     }
   })
+}
+
+export const checkBuildDownloaded = (selectedVersion: string): boolean => {
+  const zipPath = path.join(rootPath, 'releasezips', `juanclient-${selectedVersion}.zip`)
+  try {
+    fs.accessSync(zipPath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export const downloadBuild = async (selectedVersion: string): Promise<void> => {
+  const req = await fetch('https://api.github.com/repos/timothyhilton/juanclient/releases')
+  const releasesData: releasesData = await req.json()
+  const selectedRelease = releasesData.find((release) => release.tag_name === selectedVersion)
+
+  if (!selectedRelease) {
+    throw new Error('Selected version not found')
+  }
+
+  await downloadRelease(selectedRelease)
 }
