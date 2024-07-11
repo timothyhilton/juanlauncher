@@ -24,19 +24,26 @@ type releasesData = [
   }
 ]
 
-export const launch = async () => {
+export const launch = async (selectedVersion: string) => {
   const req = await fetch('https://api.github.com/repos/timothyhilton/juanclient/releases')
   const releasesData: releasesData = await req.json()
-  const latestRelease = releasesData[0].assets[0]
+  const selectedRelease = releasesData.find((release) => release.tag_name === selectedVersion)
+
+  if (!selectedRelease) {
+    console.error('Selected version not found')
+    return
+  }
+
+  const latestRelease = selectedRelease.assets[0]
   const filePath = path.join(rootPath, 'releasezips')
 
   const zipPath = path.join(filePath, latestRelease.name)
 
-  if (fs.existsSync(filePath)) {
-    console.log('latest release zip already downloaded, skipping')
-    unzipVersion(zipPath, latestRelease.name.replace('.zip', ''))
+  if (fs.existsSync(zipPath)) {
+    console.log('Selected release zip already downloaded, skipping')
+    unzipVersion(zipPath, selectedVersion)
   } else {
-    downloadRelease(releasesData)
+    downloadRelease(selectedRelease)
   }
 }
 
@@ -55,11 +62,11 @@ const unzipVersion = async (zipPath: string, releaseName) => {
     })
 }
 
-const downloadRelease = async (releasesData: releasesData) => {
-  const latestRelease = releasesData[0].assets[0]
+const downloadRelease = async (release: releasesData[0]) => {
+  const latestRelease = release.assets[0]
   const downloadDir = path.join(rootPath, 'releasezips')
 
-  console.log(`downloading juan client ${releasesData[0].tag_name}`)
+  console.log(`downloading juan client ${release.tag_name}`)
 
   const fileUrl = latestRelease.browser_download_url
   if (!fs.existsSync(downloadDir)) {
@@ -71,7 +78,7 @@ const downloadRelease = async (releasesData: releasesData) => {
   dl.start()
   await dl.on('end', () => {
     console.log('download completed, unzipping download')
-    unzipVersion(path.join(downloadDir, latestRelease.name), latestRelease.name.replace('.zip', ''))
+    unzipVersion(path.join(downloadDir, latestRelease.name), release.tag_name)
   })
 }
 
@@ -86,7 +93,7 @@ const launchGame = async (releaseName: string) => {
     version: {
       number: '1.8.8',
       type: 'release',
-      custom: releaseName
+      custom: `juanclient-${releaseName}`
     },
     memory: {
       max: '6G',

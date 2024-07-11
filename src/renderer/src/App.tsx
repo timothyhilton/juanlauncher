@@ -6,7 +6,7 @@ export default function App(){
   const [build, setBuild] = useState('')
 
   const onClick = () => {
-    window.electron.ipcRenderer.send('launch');
+    window.electron.ipcRenderer.send('launch', build);
   }
 
   return(

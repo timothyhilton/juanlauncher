@@ -51,7 +51,7 @@ app.whenReady().then(() => {
   })
 
   // IPC test
-  ipcMain.on('launch', async () => await launch())
+  ipcMain.on('launch', async (_, version) => await launch(version))
 
   createWindow()
 
