@@ -15,18 +15,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@renderer/components/ui/popover"
-
-type Account = {
-    id: string;
-    username: string;
-};
+import { IUser } from 'minecraft-launcher-core';
   
-export function AccountDropdown({ value, setValue }: { value: string, setValue: (value: string) => void }) {
+export function AccountDropdown({ value, setValue }: { value?: IUser, setValue: (value: IUser) => void }) {
   const [open, setOpen] = useState(false);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<IUser[]>([]);
 
   useEffect(() => {
     loadAccounts();
+    console.log(accounts)
   }, []);
 
   const loadAccounts = async () => {
@@ -36,8 +33,9 @@ export function AccountDropdown({ value, setValue }: { value: string, setValue: 
 
   const addAccount = async () => {
     const newAccount = await window.electron.ipcRenderer.invoke('addAccount');
-    if (newAccount) {
+    if (newAccount && !(accounts.findLast(account => account.uuid == newAccount.uuid))) {
       setAccounts([...accounts, newAccount]);
+      setValue(newAccount.authManager);
     }
   };
 
@@ -51,7 +49,7 @@ export function AccountDropdown({ value, setValue }: { value: string, setValue: 
           className="w-[200px] justify-between"
         >
           {value
-            ? accounts.find((account) => account.id === value)?.username
+            ? accounts.find((account) => account.uuid === value.uuid)?.name
             : "Select account..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -63,22 +61,25 @@ export function AccountDropdown({ value, setValue }: { value: string, setValue: 
           <CommandGroup>
             <CommandList>
                 {accounts.map((account) => (
-                <CommandItem
-                    key={account.id}
-                    value={account.id}
+                  <CommandItem
+                    key={account.uuid}
+                    value={account.uuid}
                     onSelect={(currentValue) => {
-                    setValue(currentValue === value ? "" : currentValue);
-                    setOpen(false);
+                      const selectedAccount = accounts.find(account => account.uuid === currentValue);
+                      if (selectedAccount) {
+                        setValue(selectedAccount);
+                      }
+                      setOpen(false);
                     }}
-                >
+                  >
                     <Check
                     className={cn(
                         "mr-2 h-4 w-4",
-                        value === account.id ? "opacity-100" : "opacity-0"
+                        value == account ? "opacity-100" : "opacity-0"
                     )}
                     />
-                    {account.username}
-                </CommandItem>
+                    {account.name}
+                  </CommandItem>
                 ))}
             </CommandList>
           </CommandGroup>

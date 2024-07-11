@@ -2,10 +2,11 @@ import { Button } from "@renderer/components/ui/button";
 import { VersionDropdown } from "./components/version_dropdown";
 import { AccountDropdown } from "./components/account_dropdown";
 import { useState } from "react";
+import { IUser } from "minecraft-launcher-core";
 
 export default function App() {
   const [build, setBuild] = useState('')
-  const [account, setAccount] = useState('')
+  const [account, setAccount] = useState<IUser>()
   const [isLoading, setIsLoading] = useState(false)
   const [isDownloaded, setIsDownloaded] = useState(false)
 
@@ -19,12 +20,12 @@ export default function App() {
     }
   }
 
-  const onClick = async () => {
+  const launch = async () => {
     if (!account) {
       console.error('No account selected')
       return
     }
-
+  
     setIsLoading(true)
     try {
       if (!isDownloaded) {
@@ -57,7 +58,7 @@ export default function App() {
           <VersionDropdown value={build} setValue={setBuild} onBuildSelect={checkBuildDownloaded} />
           {build && (
             <Button 
-              onClick={onClick} 
+              onClick={launch} 
               variant="outline"
               disabled={isLoading || !account}
               className="relative mt-4"

@@ -25,15 +25,19 @@ type releasesData = [
   }
 ]
 
-export const launch = async (selectedVersion: string, accountId: string, window: BrowserWindow) => {
+export const launch = async (selectedVersion: string, user: IUser, window: BrowserWindow) => {
   const isDownloaded = checkBuildDownloaded(selectedVersion)
   if (!isDownloaded) {
     throw new Error('Selected version is not downloaded')
   }
 
   const zipPath = path.join(rootPath, 'releasezips', `juanclient-${selectedVersion}.zip`)
-  await unzipVersion(zipPath, selectedVersion)
-  await launchGame(selectedVersion, accountId, window)
+
+  if (!fs.existsSync(path.join(rootPath, 'versions', selectedVersion))) {
+    await unzipVersion(zipPath, selectedVersion)
+  }
+
+  await launchGame(selectedVersion, user, window)
 }
 
 export const unzipVersion = async (zipPath: string, releaseName: string): Promise<void> => {
@@ -79,38 +83,39 @@ export const downloadRelease = async (release: releasesData[0]): Promise<string>
 
 export const launchGame = async (
   releaseName: string,
-  accountId: string,
+  user: IUser,
   window: BrowserWindow
 ): Promise<void> => {
-  const authManager = new Auth('select_account')
-  const xboxManager = await authManager.launch('electron')
-  const token = await xboxManager.getMinecraft()
-
-  const opts = {
-    authorization: token.mclc() as IUser,
-    root: rootPath,
-    version: {
-      number: '1.8.8',
-      type: 'release',
-      custom: `juanclient-${releaseName}`
-    },
-    memory: {
-      max: '6G',
-      min: '4G'
+  try {
+    const opts = {
+      authorization: user,
+      root: rootPath,
+      version: {
+        number: '1.8.8',
+        type: 'release',
+        custom: `juanclient-${releaseName}`
+      },
+      memory: {
+        max: '6G',
+        min: '4G'
+      }
     }
+
+    console.log('Starting!')
+    launcher.launch(opts)
+
+    launcher.on('debug', (e) => console.log(e))
+    launcher.on('data', (e) => console.log(e))
+    launcher.on('data', (e) => {
+      if (e.includes('LWJGL Version:')) {
+        console.log('Game has launched, closing Electron window')
+        window.close()
+      }
+    })
+  } catch (error) {
+    console.error('Failed to launch game:', error)
+    throw error
   }
-
-  console.log('Starting!')
-  launcher.launch(opts)
-
-  launcher.on('debug', (e) => console.log(e))
-  launcher.on('data', (e) => console.log(e))
-  launcher.on('data', (e) => {
-    if (e.includes('LWJGL Version:')) {
-      console.log('Game has launched, closing Electron window')
-      window.close()
-    }
-  })
 }
 
 export const checkBuildDownloaded = (selectedVersion: string): boolean => {

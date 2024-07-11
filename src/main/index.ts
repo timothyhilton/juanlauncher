@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { checkBuildDownloaded, downloadBuild, launch } from './mclc'
 import { Auth } from 'msmc'
+import { IUser } from 'minecraft-launcher-core'
 
 var mainWindow: BrowserWindow
 
@@ -73,10 +74,7 @@ app.whenReady().then(() => {
     try {
       const result = await authManager.launch('electron')
       const minecraft = await result.getMinecraft()
-      return {
-        id: minecraft.profile?.id,
-        username: minecraft.profile?.name
-      }
+      return minecraft.mclc() as IUser
     } catch (error) {
       console.error('Failed to add account:', error)
       return null
@@ -87,9 +85,9 @@ app.whenReady().then(() => {
     return []
   })
 
-  ipcMain.handle('launch', async (_, version, accountId) => {
+  ipcMain.handle('launch', async (_, version, token) => {
     try {
-      await launch(version, accountId, mainWindow)
+      await launch(version, token, mainWindow)
       return { success: true }
     } catch (error) {
       if (error instanceof Error) {

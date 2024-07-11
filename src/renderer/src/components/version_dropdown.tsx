@@ -36,7 +36,6 @@ export function VersionDropdown({value, setValue, onBuildSelect} : {value: strin
   const [builds, setBuilds] = useState([''])
 
   useEffect(() => {
-    console.log("test")
     fetch('https://api.github.com/repos/timothyhilton/juanclient/releases')
         .then(async res =>{
             const releasesData: releasesData = await res.json()
