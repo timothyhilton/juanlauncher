@@ -3,6 +3,7 @@ import { VersionDropdown } from "./components/version_dropdown";
 import { AccountDropdown } from "./components/account_dropdown";
 import { useState } from "react";
 import { IUser } from "minecraft-launcher-core";
+import { CopyButtons } from "./components/copy_buttons";
 
 export default function App() {
   const [build, setBuild] = useState('')
@@ -49,7 +50,8 @@ export default function App() {
 
   return(
     <div className="flex flex-col h-screen">
-      <div className="flex justify-end p-4">
+      <div className="flex justify-between p-4">
+        <CopyButtons />
         <AccountDropdown value={account} setValue={setAccount} />
       </div>
       <div className="flex-grow flex justify-center items-center mt-[-5rem]">

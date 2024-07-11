@@ -1,10 +1,11 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { join } from 'path'
+import path, { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { checkBuildDownloaded, downloadBuild, launch } from './mclc'
 import { Auth } from 'msmc'
 import { IUser } from 'minecraft-launcher-core'
+import { copyGameSettings, copyResourcePacks } from './copy-files'
 
 var mainWindow: BrowserWindow
 
@@ -99,6 +100,10 @@ app.whenReady().then(() => {
       }
     }
   })
+
+  ipcMain.handle('copyGameSettings', copyGameSettings)
+
+  ipcMain.handle('copyResourcePacks', copyResourcePacks)
 
   createWindow()
 

@@ -41,7 +41,7 @@ export function AccountDropdown({ value, setValue }: { value?: IUser, setValue: 
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild className="z-10 relative">
         <Button
           variant="outline"
           role="combobox"
