@@ -1,11 +1,10 @@
 import { Client, IUser } from 'minecraft-launcher-core'
 import { Auth } from 'msmc'
 import { DownloaderHelper } from 'node-downloader-helper'
-import os, { version } from 'os'
+import os from 'os'
 import path from 'path'
 import fs from 'fs'
 import unzipper from 'unzipper'
-import { unzip } from 'zlib'
 
 const launcher = new Client()
 const rootPath = path.join(
@@ -52,7 +51,7 @@ const unzipVersion = async (zipPath: string, releaseName) => {
     .pipe(unzipper.Extract({ path: path.join(rootPath, 'versions') }))
     .on('close', () => {
       console.log('files unzipped successfully, launching game')
-      launchGame(versionsDir, releaseName)
+      launchGame(releaseName)
     })
 }
 
@@ -76,7 +75,7 @@ const downloadRelease = async (releasesData: releasesData) => {
   })
 }
 
-const launchGame = async (versionDir: string, releaseName: string) => {
+const launchGame = async (releaseName: string) => {
   const authManager = new Auth('select_account')
   const xboxManager = await authManager.launch('electron')
   const token = await xboxManager.getMinecraft()
